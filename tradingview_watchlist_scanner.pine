@@ -1,0 +1,327 @@
+//@version=5
+indicator("ADOL22 10-Symbol Watchlist Scanner", overlay = false)
+
+// -----------------------------------------------------------------------------
+// Inputs
+// -----------------------------------------------------------------------------
+scannerName   = input.string("Big Tech / AI 15m", "Scanner Name")
+scanTimeframe = input.timeframe("15", "Scan Timeframe")
+
+symbol1  = input.symbol("NASDAQ:NVDA",  "Symbol 1")
+symbol2  = input.symbol("NASDAQ:TSLA",  "Symbol 2")
+symbol3  = input.symbol("NASDAQ:AMD",   "Symbol 3")
+symbol4  = input.symbol("NASDAQ:AAPL",  "Symbol 4")
+symbol5  = input.symbol("NASDAQ:MSFT",  "Symbol 5")
+symbol6  = input.symbol("NASDAQ:META",  "Symbol 6")
+symbol7  = input.symbol("NASDAQ:GOOG",  "Symbol 7")
+symbol8  = input.symbol("NASDAQ:AMZN",  "Symbol 8")
+symbol9  = input.symbol("NASDAQ:SMCI",  "Symbol 9")
+symbol10 = input.symbol("NASDAQ:PLTR",  "Symbol 10")
+
+showTable = input.bool(true, "Show Scanner Table")
+
+// -----------------------------------------------------------------------------
+// Enums / helpers
+// -----------------------------------------------------------------------------
+SIG_BUY_READY   = 1
+SIG_WAIT_VOLUME = 2
+SIG_WATCH       = 3
+SIG_NO_CHASE    = 4
+SIG_EXIT_NOW    = 5
+SIG_STOP_ACTIVE = 6
+SIG_RISK_OFF    = 7
+SIG_WAIT        = 8
+
+TREND_BULL  = 1
+TREND_BEAR  = -1
+TREND_MIXED = 0
+
+MODE_TREND      = 1
+MODE_PULLBACK   = 2
+MODE_REVERSAL   = 3
+MODE_NEUTRAL    = 4
+
+MARKET_TRENDING = 1
+MARKET_RANGING  = 2
+
+HEAT_HEALTHY      = 1
+HEAT_WARM         = 2
+HEAT_HOT          = 3
+HEAT_EXHAUSTED    = 4
+
+TRAP_NONE       = 0
+TRAP_BULL_TRAP  = 1
+TRAP_BEAR_TRAP  = 2
+
+DECISION_BUY      = 1
+DECISION_WAIT     = 2
+DECISION_EXIT     = 3
+DECISION_STOP     = 4
+DECISION_RISK_OFF = 5
+
+signalText(sig) =>
+    sig == SIG_BUY_READY   ? "BUY READY"   :
+    sig == SIG_WAIT_VOLUME ? "WAIT VOLUME" :
+    sig == SIG_WATCH       ? "WATCH"       :
+    sig == SIG_NO_CHASE    ? "NO CHASE"    :
+    sig == SIG_EXIT_NOW    ? "EXIT NOW"    :
+    sig == SIG_STOP_ACTIVE ? "STOP ACTIVE" :
+    sig == SIG_RISK_OFF    ? "RISK OFF"    : "WAIT"
+
+trendText(trend) =>
+    trend == TREND_BULL ? "BULL" : trend == TREND_BEAR ? "BEAR" : "MIXED"
+
+riskText(trend) =>
+    trend == TREND_BULL ? "RISK ON" : trend == TREND_BEAR ? "RISK OFF" : "NEUTRAL"
+
+decisionText(code) =>
+    code == DECISION_BUY      ? "BUY TRIGGER" :
+    code == DECISION_WAIT     ? "WAIT" :
+    code == DECISION_EXIT     ? "EXIT TRIGGER" :
+    code == DECISION_STOP     ? "STOP TRIGGER" : "RISK FILTER"
+
+modeText(code) =>
+    code == MODE_TREND ? "TREND" :
+    code == MODE_PULLBACK ? "PULLBACK" :
+    code == MODE_REVERSAL ? "REVERSAL" : "NEUTRAL"
+
+marketTypeText(code) =>
+    code == MARKET_TRENDING ? "TRENDING" : "RANGING"
+
+heatText(code) =>
+    code == HEAT_HEALTHY ? "HEALTHY" :
+    code == HEAT_WARM ? "WARM" :
+    code == HEAT_HOT ? "HOT" : "EXHAUSTED"
+
+trapText(code) =>
+    code == TRAP_BULL_TRAP ? "BULL TRAP" :
+    code == TRAP_BEAR_TRAP ? "BEAR TRAP" : "NONE"
+
+fmt(v) =>
+    na(v) ? "na" : str.tostring(v, format.mintick)
+
+fmt0(v) =>
+    na(v) ? "na" : str.tostring(v, "#")
+
+shortTicker(sym) =>
+    str.contains(sym, ":") ? array.get(str.split(sym, ":"), 1) : sym
+
+signalColor(sig) =>
+    sig == SIG_BUY_READY ? color.new(color.lime, 0) :
+    sig == SIG_WAIT_VOLUME ? color.new(color.orange, 0) :
+    sig == SIG_WATCH ? color.new(color.aqua, 0) :
+    sig == SIG_NO_CHASE ? color.new(color.orange, 0) :
+    sig == SIG_EXIT_NOW ? color.new(color.red, 0) :
+    sig == SIG_STOP_ACTIVE ? color.new(color.purple, 0) :
+    sig == SIG_RISK_OFF ? color.new(color.red, 0) :
+    color.new(color.yellow, 0)
+
+signalBg(sig) =>
+    sig == SIG_BUY_READY ? color.new(color.lime, 82) :
+    sig == SIG_WAIT_VOLUME ? color.new(color.orange, 82) :
+    sig == SIG_WATCH ? color.new(color.aqua, 84) :
+    sig == SIG_NO_CHASE ? color.new(color.orange, 82) :
+    sig == SIG_EXIT_NOW ? color.new(color.red, 82) :
+    sig == SIG_STOP_ACTIVE ? color.new(color.purple, 82) :
+    sig == SIG_RISK_OFF ? color.new(color.red, 85) :
+    color.new(color.yellow, 85)
+
+// -----------------------------------------------------------------------------
+// Core scan logic per symbol/timeframe
+// -----------------------------------------------------------------------------
+scanSymbol() =>
+    ema21 = ta.ema(close, 21)
+    ema50 = ta.ema(close, 50)
+    vwapValue = ta.vwap(hlc3)
+    rsiValue = ta.rsi(close, 14)
+    atrValue = ta.atr(14)
+    avgVol = ta.sma(volume, 20)
+    rvolValue = avgVol > 0 ? volume / avgVol : 0.0
+
+    candleRange = math.max(high - low, syminfo.mintick)
+    candleBody = math.abs(close - open)
+    candleStrength = candleBody / candleRange
+
+    trendCode = close > ema21 and ema21 > ema50 ? TREND_BULL : close < ema21 and ema21 < ema50 ? TREND_BEAR : TREND_MIXED
+    marketTypeCode = (math.abs(ema21 - ema50) / math.max(close, syminfo.mintick)) > 0.003 ? MARKET_TRENDING : MARKET_RANGING
+    modeCode = trendCode == TREND_BULL and close <= ema21 + atrValue * 0.35 ? MODE_PULLBACK : trendCode == TREND_BEAR and close >= ema21 - atrValue * 0.35 ? MODE_PULLBACK : trendCode != TREND_MIXED ? MODE_TREND : MODE_NEUTRAL
+
+    highBreak = close > ta.highest(high[1], 10)
+    lowBreak = close < ta.lowest(low[1], 10)
+    bullSweep = low < ta.lowest(low[1], 5) and close > ta.lowest(low[1], 5) and close > open
+    bearSweep = high > ta.highest(high[1], 5) and close < ta.highest(high[1], 5) and close < open
+    trapCode = bearSweep and close > ema21 ? TRAP_BEAR_TRAP : bullSweep and close < ema21 ? TRAP_BULL_TRAP : TRAP_NONE
+
+    buyZone = math.abs(close - ema21) <= atrValue * 0.35 or math.abs(close - vwapValue) <= atrValue * 0.25
+    noChase = trendCode == TREND_BULL and (rsiValue >= 70 or close > ema21 + atrValue * 1.5)
+    stopRisk = trendCode == TREND_BULL and close < vwapValue and close < ema21 ? true : trendCode == TREND_BEAR and close > vwapValue and close > ema21
+
+    bullScore = 0.0
+    bullScore += trendCode == TREND_BULL ? 25 : 0
+    bullScore += close > vwapValue ? 20 : 0
+    bullScore += rsiValue >= 52 and rsiValue <= 68 ? 15 : rsiValue > 68 and rsiValue <= 72 ? 10 : 0
+    bullScore += rvolValue >= 2 ? 20 : rvolValue >= 1.2 ? 10 : 0
+    bullScore += candleStrength >= 0.6 ? 10 : candleStrength >= 0.45 ? 5 : 0
+    bullScore += bullSweep or highBreak ? 10 : 0
+    bullScore -= noChase ? 15 : 0
+    bullScore -= trapCode == TRAP_BULL_TRAP ? 10 : 0
+
+    bearScore = 0.0
+    bearScore += trendCode == TREND_BEAR ? 25 : 0
+    bearScore += close < vwapValue ? 20 : 0
+    bearScore += rsiValue <= 48 and rsiValue >= 32 ? 15 : rsiValue < 32 ? 10 : 0
+    bearScore += rvolValue >= 2 ? 20 : rvolValue >= 1.2 ? 10 : 0
+    bearScore += candleStrength >= 0.6 ? 10 : candleStrength >= 0.45 ? 5 : 0
+    bearScore += bearSweep or lowBreak ? 10 : 0
+    bearScore -= trapCode == TRAP_BEAR_TRAP ? 10 : 0
+
+    score = math.round(math.max(bullScore, bearScore))
+
+    heatCode = rsiValue >= 75 or (rvolValue >= 2.5 and candleStrength >= 0.7) ? HEAT_EXHAUSTED :
+         rsiValue >= 68 or close > ema21 + atrValue * 1.0 ? HEAT_HOT :
+         rvolValue >= 1.5 ? HEAT_WARM : HEAT_HEALTHY
+
+    signalCode = SIG_WAIT
+    decisionCode = DECISION_WAIT
+
+    bullishReady = trendCode == TREND_BULL and close > vwapValue and rvolValue >= 1.2 and candleStrength >= 0.55 and (buyZone or bullSweep or highBreak)
+    bearishReady = trendCode == TREND_BEAR and close < vwapValue and rvolValue >= 1.2 and candleStrength >= 0.55 and (bearSweep or lowBreak)
+
+    if trendCode == TREND_BEAR and close < vwapValue and rvolValue >= 1.5 and rsiValue < 42
+        signalCode := SIG_RISK_OFF
+        decisionCode := DECISION_RISK_OFF
+    else if trendCode == TREND_BULL and score >= 70 and bullishReady and not noChase
+        signalCode := SIG_BUY_READY
+        decisionCode := DECISION_BUY
+    else if noChase
+        signalCode := SIG_NO_CHASE
+        decisionCode := DECISION_WAIT
+    else if trendCode == TREND_BULL and close > vwapValue and rvolValue < 1.2
+        signalCode := SIG_WAIT_VOLUME
+        decisionCode := DECISION_WAIT
+    else if trendCode == TREND_BEAR and close < ema21 and close < vwapValue and candleStrength >= 0.55
+        signalCode := SIG_EXIT_NOW
+        decisionCode := DECISION_EXIT
+    else if stopRisk
+        signalCode := SIG_STOP_ACTIVE
+        decisionCode := DECISION_STOP
+    else if trendCode != TREND_MIXED
+        signalCode := SIG_WATCH
+        decisionCode := DECISION_WAIT
+
+    entry = close
+    stop = trendCode == TREND_BEAR ? math.max(ema21, vwapValue) + atrValue : math.min(ema21, vwapValue) - atrValue
+    exitT1 = trendCode == TREND_BEAR ? close - math.abs(close - stop) * 2.0 : close + math.abs(close - stop) * 2.0
+    exitT2 = trendCode == TREND_BEAR ? close - math.abs(close - stop) * 3.0 : close + math.abs(close - stop) * 3.0
+    prevSignalCode = nz(signalCode[1], SIG_WAIT)
+
+    [close, entry, stop, exitT1, exitT2, vwapValue, ema21, ema50, rsiValue, rvolValue, atrValue, candleStrength, score, signalCode, prevSignalCode, trendCode, decisionCode, modeCode, marketTypeCode, heatCode, trapCode]
+
+fetchSymbol(sym) =>
+    request.security(sym, scanTimeframe, scanSymbol(), barmerge.gaps_off, barmerge.lookahead_off)
+
+// -----------------------------------------------------------------------------
+// Pull 10 symbols
+// -----------------------------------------------------------------------------
+[price1, entry1, stop1, t11, t21, vwap1, ema211, ema501, rsi1, rvol1, atr1, candle1, score1, sig1, prevSig1, trend1, decision1, mode1, market1, heat1, trap1] = fetchSymbol(symbol1)
+[price2, entry2, stop2, t12, t22, vwap2, ema212, ema502, rsi2, rvol2, atr2, candle2, score2, sig2, prevSig2, trend2, decision2, mode2, market2, heat2, trap2] = fetchSymbol(symbol2)
+[price3, entry3, stop3, t13, t23, vwap3, ema213, ema503, rsi3, rvol3, atr3, candle3, score3, sig3, prevSig3, trend3, decision3, mode3, market3, heat3, trap3] = fetchSymbol(symbol3)
+[price4, entry4, stop4, t14, t24, vwap4, ema214, ema504, rsi4, rvol4, atr4, candle4, score4, sig4, prevSig4, trend4, decision4, mode4, market4, heat4, trap4] = fetchSymbol(symbol4)
+[price5, entry5, stop5, t15, t25, vwap5, ema215, ema505, rsi5, rvol5, atr5, candle5, score5, sig5, prevSig5, trend5, decision5, mode5, market5, heat5, trap5] = fetchSymbol(symbol5)
+[price6, entry6, stop6, t16, t26, vwap6, ema216, ema506, rsi6, rvol6, atr6, candle6, score6, sig6, prevSig6, trend6, decision6, mode6, market6, heat6, trap6] = fetchSymbol(symbol6)
+[price7, entry7, stop7, t17, t27, vwap7, ema217, ema507, rsi7, rvol7, atr7, candle7, score7, sig7, prevSig7, trend7, decision7, mode7, market7, heat7, trap7] = fetchSymbol(symbol7)
+[price8, entry8, stop8, t18, t28, vwap8, ema218, ema508, rsi8, rvol8, atr8, candle8, score8, sig8, prevSig8, trend8, decision8, mode8, market8, heat8, trap8] = fetchSymbol(symbol8)
+[price9, entry9, stop9, t19, t29, vwap9, ema219, ema509, rsi9, rvol9, atr9, candle9, score9, sig9, prevSig9, trend9, decision9, mode9, market9, heat9, trap9] = fetchSymbol(symbol9)
+[price10, entry10, stop10, t110, t210, vwap10, ema2110, ema5010, rsi10, rvol10, atr10, candle10, score10, sig10, prevSig10, trend10, decision10, mode10, market10, heat10, trap10] = fetchSymbol(symbol10)
+
+// -----------------------------------------------------------------------------
+// Alert payload
+// -----------------------------------------------------------------------------
+sendAlert(sym, sig, price, entry, stop, exitT1, score, rvol, rsi, vwap, trendCode, decisionCode) =>
+    payload =
+         "{"
+         + "\"secret\":\"dixie123\","
+         + "\"scanner\":\"" + scannerName + "\","
+         + "\"ticker\":\"" + sym + "\","
+         + "\"timeframe\":\"" + scanTimeframe + "\","
+         + "\"signal\":\"" + signalText(sig) + "\","
+         + "\"price\":\"" + fmt(price) + "\","
+         + "\"entry\":\"" + fmt(entry) + "\","
+         + "\"stop\":\"" + fmt(stop) + "\","
+         + "\"exit\":\"" + fmt(exitT1) + "\","
+         + "\"score\":\"" + fmt0(score) + "\","
+         + "\"rvol\":\"" + str.tostring(rvol, "#.##") + "\","
+         + "\"rsi\":\"" + str.tostring(rsi, "#.##") + "\","
+         + "\"vwap\":\"" + fmt(vwap) + "\","
+         + "\"trend\":\"" + trendText(trendCode) + "\","
+         + "\"risk\":\"" + riskText(trendCode) + "\","
+         + "\"decision\":\"" + decisionText(decisionCode) + "\""
+         + "}"
+    alert(payload, alert.freq_once_per_bar_close)
+
+maybeFire(sym, sig, prevSig, score, price, entry, stop, exitT1, rvol, rsi, vwap, trendCode, decisionCode) =>
+    isNewSignal = sig != prevSig
+    actionable = sig != SIG_WAIT
+    if barstate.isconfirmed and isNewSignal and actionable
+        sendAlert(sym, sig, price, entry, stop, exitT1, score, rvol, rsi, vwap, trendCode, decisionCode)
+
+maybeFire(symbol1, sig1, prevSig1, score1, price1, entry1, stop1, t11, rvol1, rsi1, vwap1, trend1, decision1)
+maybeFire(symbol2, sig2, prevSig2, score2, price2, entry2, stop2, t12, rvol2, rsi2, vwap2, trend2, decision2)
+maybeFire(symbol3, sig3, prevSig3, score3, price3, entry3, stop3, t13, rvol3, rsi3, vwap3, trend3, decision3)
+maybeFire(symbol4, sig4, prevSig4, score4, price4, entry4, stop4, t14, rvol4, rsi4, vwap4, trend4, decision4)
+maybeFire(symbol5, sig5, prevSig5, score5, price5, entry5, stop5, t15, rvol5, rsi5, vwap5, trend5, decision5)
+maybeFire(symbol6, sig6, prevSig6, score6, price6, entry6, stop6, t16, rvol6, rsi6, vwap6, trend6, decision6)
+maybeFire(symbol7, sig7, prevSig7, score7, price7, entry7, stop7, t17, rvol7, rsi7, vwap7, trend7, decision7)
+maybeFire(symbol8, sig8, prevSig8, score8, price8, entry8, stop8, t18, rvol8, rsi8, vwap8, trend8, decision8)
+maybeFire(symbol9, sig9, prevSig9, score9, price9, entry9, stop9, t19, rvol9, rsi9, vwap9, trend9, decision9)
+maybeFire(symbol10, sig10, prevSig10, score10, price10, entry10, stop10, t110, rvol10, rsi10, vwap10, trend10, decision10)
+
+// -----------------------------------------------------------------------------
+// Scanner table
+// -----------------------------------------------------------------------------
+var table scannerTable = table.new(position.top_right, 9, 12, border_width = 1)
+
+drawHeader() =>
+    table.cell(scannerTable, 0, 0, scannerName + " | " + scanTimeframe, text_color = color.white, bgcolor = color.new(color.navy, 0), text_size = size.large)
+    table.cell(scannerTable, 1, 0, "Ticker", text_color = color.white, bgcolor = color.new(color.navy, 0))
+    table.cell(scannerTable, 2, 0, "Signal", text_color = color.white, bgcolor = color.new(color.navy, 0))
+    table.cell(scannerTable, 3, 0, "Score", text_color = color.white, bgcolor = color.new(color.navy, 0))
+    table.cell(scannerTable, 4, 0, "Price", text_color = color.white, bgcolor = color.new(color.navy, 0))
+    table.cell(scannerTable, 5, 0, "Entry", text_color = color.white, bgcolor = color.new(color.navy, 0))
+    table.cell(scannerTable, 6, 0, "Stop", text_color = color.white, bgcolor = color.new(color.navy, 0))
+    table.cell(scannerTable, 7, 0, "Exit T1", text_color = color.white, bgcolor = color.new(color.navy, 0))
+    table.cell(scannerTable, 8, 0, "RVOL / RSI", text_color = color.white, bgcolor = color.new(color.navy, 0))
+
+drawRow(row, sym, sig, score, price, entry, stop, t1, rvol, rsi) =>
+    bg = signalBg(sig)
+    fg = signalColor(sig)
+    table.cell(scannerTable, 0, row, "")
+    table.cell(scannerTable, 1, row, shortTicker(sym), text_color = color.white, bgcolor = bg)
+    table.cell(scannerTable, 2, row, signalText(sig), text_color = fg, bgcolor = bg)
+    table.cell(scannerTable, 3, row, fmt0(score), text_color = color.white, bgcolor = bg)
+    table.cell(scannerTable, 4, row, fmt(price), text_color = color.white, bgcolor = bg)
+    table.cell(scannerTable, 5, row, fmt(entry), text_color = color.white, bgcolor = bg)
+    table.cell(scannerTable, 6, row, fmt(stop), text_color = color.white, bgcolor = bg)
+    table.cell(scannerTable, 7, row, fmt(t1), text_color = color.white, bgcolor = bg)
+    table.cell(scannerTable, 8, row, str.tostring(rvol, "#.##") + " / " + str.tostring(rsi, "#.##"), text_color = color.white, bgcolor = bg)
+
+if barstate.islast and showTable
+    table.clear(scannerTable, 0, 0, 8, 11)
+    drawHeader()
+    drawRow(1,  symbol1,  sig1,  score1,  price1,  entry1,  stop1,  t11,  rvol1,  rsi1)
+    drawRow(2,  symbol2,  sig2,  score2,  price2,  entry2,  stop2,  t12,  rvol2,  rsi2)
+    drawRow(3,  symbol3,  sig3,  score3,  price3,  entry3,  stop3,  t13,  rvol3,  rsi3)
+    drawRow(4,  symbol4,  sig4,  score4,  price4,  entry4,  stop4,  t14,  rvol4,  rsi4)
+    drawRow(5,  symbol5,  sig5,  score5,  price5,  entry5,  stop5,  t15,  rvol5,  rsi5)
+    drawRow(6,  symbol6,  sig6,  score6,  price6,  entry6,  stop6,  t16,  rvol6,  rsi6)
+    drawRow(7,  symbol7,  sig7,  score7,  price7,  entry7,  stop7,  t17,  rvol7,  rsi7)
+    drawRow(8,  symbol8,  sig8,  score8,  price8,  entry8,  stop8,  t18,  rvol8,  rsi8)
+    drawRow(9,  symbol9,  sig9,  score9,  price9,  entry9,  stop9,  t19,  rvol9,  rsi9)
+    drawRow(10, symbol10, sig10, score10, price10, entry10, stop10, t110, rvol10, rsi10)
+
+// -----------------------------------------------------------------------------
+// TradingView alert setup:
+// Condition: Any alert() function call
+// Webhook URL: https://YOUR-APP.onrender.com/api/tradingview-alert
+// Message: {{alert_message}}
+// -----------------------------------------------------------------------------

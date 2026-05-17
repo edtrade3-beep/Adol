@@ -1,0 +1,22 @@
+[
+  {
+    "id": "cheaptrip-1778859024425-4aynis",
+    "origin": "JFK",
+    "destination": "CMN",
+    "departureDate": "2026-06-10",
+    "returnDate": "2026-06-18",
+    "flexibleDates": true,
+    "travelers": 2,
+    "maxBudget": 1800,
+    "stayType": "Any",
+    "language": "English",
+    "targetPrice": 750,
+    "enabled": true,
+    "createdAt": "2026-05-15T15:30:24.425Z",
+    "duplicate": false,
+    "lastTriggeredAt": "2026-05-15T15:31:17.875Z",
+    "lastSentPrice": 693,
+    "lastCheckedAt": "2026-05-15T15:31:17.875Z",
+    "lastCheckedPrice": 693
+  }
+]

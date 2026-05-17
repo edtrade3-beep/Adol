@@ -1,0 +1,11 @@
+{
+  "autoScanEnabled": true,
+  "mode": "balanced",
+  "watchlist": [
+    "AMD",
+    "NVDA",
+    "TSLA"
+  ],
+  "riskPerTrade": 100,
+  "dailyMaxLossR": -2
+}

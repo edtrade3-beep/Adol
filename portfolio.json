@@ -1,0 +1,43 @@
+{
+  "accountSize": 50000,
+  "savedDate": "2026-05-07T21:21:21.627Z",
+  "positions": [
+    {
+      "id": "SPY-1778188881625",
+      "symbol": "SPY",
+      "setup": "LONG",
+      "entryDate": "2026-05-07",
+      "entryPrice": "545.32",
+      "shares": 50,
+      "currentPrice": "548.50",
+      "pnl": "159.00",
+      "pnlPercent": "0.58",
+      "stopPrice": "540.00",
+      "targetPrice": "550.00",
+      "status": "open",
+      "confluenceScore": 72,
+      "daysHeld": 0,
+      "delta": "0.000",
+      "theta": "0.000"
+    },
+    {
+      "id": "NVDA-1778188881625",
+      "symbol": "NVDA",
+      "setup": "SHORT",
+      "entryDate": "2026-05-07",
+      "entryPrice": "892.45",
+      "shares": 25,
+      "currentPrice": "885.00",
+      "pnl": "186.25",
+      "pnlPercent": "0.83",
+      "stopPrice": "910.00",
+      "targetPrice": "875.00",
+      "status": "open",
+      "confluenceScore": 68,
+      "daysHeld": 0,
+      "delta": "0.000",
+      "theta": "0.000"
+    }
+  ],
+  "closedTrades": []
+}

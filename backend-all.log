@@ -1,0 +1,90 @@
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:8080
+Health: http://localhost:8080/api/health
+Storage mode: memory
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:8080
+Health: http://localhost:8080/api/health
+Storage mode: memory
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:8080
+Health: http://localhost:8080/api/health
+Storage mode: memory
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:8080
+Health: http://localhost:8080/api/health
+Storage mode: memory
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:8080
+Health: http://localhost:8080/api/health
+Storage mode: memory
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (0) from .env // tip: ⌘ multiple files { path: ['.env.local', '.env'] }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:8080
+Health: http://localhost:8080/api/health
+Storage mode: memory
+^C^C
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (24) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:3001
+Health: http://localhost:3001/api/health
+Storage mode: memory
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (24) from .env // tip: ⌘ override existing { override: true }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:3001
+Health: http://localhost:3001/api/health
+Storage mode: memory
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (25) from .env // tip: ⌘ suppress logs { quiet: true }
+PostgreSQL unavailable. Using in-memory DB fallback.
+AggregateError
+Market AI backend running on http://localhost:3001
+Health: http://localhost:3001/api/health
+Storage mode: memory

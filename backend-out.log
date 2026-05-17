@@ -1,0 +1,5 @@
+
+> am-trading-platform@1.0.0 start:backend
+> tsx market-ai-backend.ts
+
+◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]

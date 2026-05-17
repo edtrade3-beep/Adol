@@ -1,0 +1,28 @@
+Failed to start backend AggregateError [ECONNREFUSED]: 
+    at C:\Users\dixie\OneDrive\Documents\New project\node_modules\pg-pool\index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async query (C:\Users\dixie\OneDrive\Documents\New project\market-ai-backend.ts:82:18)
+    at async initDb (C:\Users\dixie\OneDrive\Documents\New project\market-ai-backend.ts:87:3)
+    at async start (C:\Users\dixie\OneDrive\Documents\New project\market-ai-backend.ts:538:5) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:5432
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 5432
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:5432
+        at createConnectionError (node:net:1746:14)
+        at afterConnectMultiple (node:net:1776:16) {
+      errno: -4078,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 5432
+    }
+  ]
+}

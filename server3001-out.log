@@ -1,0 +1,5 @@
+◇ injected env (25) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+[ADOL] cron started 0 7,12 * * 1-5 + 45 15 * * 1-5 America/New_York
+Institutional Trading Analyst running at http://localhost:3001
+LAN access: http://192.168.1.5:3001
+Telegram chat bot polling enabled.
