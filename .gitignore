@@ -5,5 +5,3 @@ lt-*.log
 server-*.log
 port-pid.txt
 lt-pid.txt
-.env
-data/
